@@ -33,12 +33,11 @@ namespace Cinegy.TsAnalysis
         private Timer _periodicDataTimer;
         private  DateTime _startTime = DateTime.UtcNow;
         private bool _pendingExit;
+        private Logger _logger;
 
         public TeletextDecoder TeletextDecoder { get; set; }
 
         public RingBuffer RingBuffer { get; } = new RingBuffer();
-        
-        private readonly Logger Logger = LogManager.GetCurrentClassLogger();
         
         public bool HasRtpHeaders { get; set; } = true;
 
@@ -56,11 +55,34 @@ namespace Cinegy.TsAnalysis
 
         public List<PidMetric> PidMetrics { get; private set; } = new List<PidMetric>();
 
+        public Logger Logger {
+            get
+            {
+                if (_logger == null)
+                    _logger = LogManager.CreateNullLogger();
+
+                return _logger;                    
+            }
+            set
+            {
+                _logger = value;
+            }
+        }
+
         public ulong LastPcr { get ; set ; }
 
         public TsDecoder.TransportStream.TsDecoder TsDecoder { get;set; }
 
         public int SelectedPcrPid { get; set; }
+
+        public Analyser()
+        {
+        }
+
+        public Analyser(Logger logger)
+        {
+            Logger = logger;
+        }
 
         public void Setup(string multicastAddress = "", int multicastPort = 0)
         {
