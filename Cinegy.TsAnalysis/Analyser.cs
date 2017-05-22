@@ -370,12 +370,16 @@ namespace Cinegy.TsAnalysis
 
         private void _tsDecoder_TableChangeDetected(object sender, TableChangedEventArgs e)
         {
-            Logger.Log(new TelemetryLogEventInfo
+            //only log PAT / PMT / SDT changes, otherwise we bomb the telemetry system with EPG and NIT updates
+            if ((e.TableType == TableType.Pat) || (e.TableType == TableType.Pmt) || (e.TableType == TableType.Sdt))
             {
-                Message = "Table Change: " + e.Message,
-                Level = LogLevel.Info,
-                Key = "TableChange"
-            });
+                Logger.Log(new TelemetryLogEventInfo
+                {
+                    Message = "Table Change: " + e.Message,
+                    Level = LogLevel.Info,
+                    Key = "TableChange"
+                });
+            }
 
             Console.Clear();
         }
