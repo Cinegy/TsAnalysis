@@ -18,7 +18,7 @@
           "lib/netstandard1.3/Cinegy.Telemetry.dll": {}
         }
       },
-      "Cinegy.TsDecoder/2.0.52": {
+      "Cinegy.TsDecoder/2.0.54": {
         "type": "package",
         "dependencies": {
           "Microsoft.NETCore.Portable.Compatibility": "1.0.1",
@@ -1897,12 +1897,12 @@
         "lib/netstandard1.3/Cinegy.Telemetry.dll"
       ]
     },
-    "Cinegy.TsDecoder/2.0.52": {
-      "sha512": "seLW8v7MhVgXQHdY0YFe7G3mPJ1VxksBrOj5un9hWuOCx1xCrGHw7bIhXA0B1ZzGvQ2XROKcX6qWR2sIT7FNqA==",
+    "Cinegy.TsDecoder/2.0.54": {
+      "sha512": "+rrJqezFWuiKNVTA2wL0Xg/xxz0xZiDtavsXZ+GF76rqQpy6zZN65as/XimIaWf6EZOiKLzWtBjW0D98uI+Eag==",
       "type": "package",
-      "path": "cinegy.tsdecoder/2.0.52",
+      "path": "cinegy.tsdecoder/2.0.54",
       "files": [
-        "cinegy.tsdecoder.2.0.52.nupkg.sha512",
+        "cinegy.tsdecoder.2.0.54.nupkg.sha512",
         "cinegy.tsdecoder.nuspec",
         "lib/netstandard1.3/Cinegy.TsDecoder.dll"
       ]
@@ -6482,7 +6482,7 @@
   "projectFileDependencyGroups": {
     "": [
       "Cinegy.Telemetry >= 2.0.10-alpha1",
-      "Cinegy.TsDecoder >= 2.0.52",
+      "Cinegy.TsDecoder >= 2.0.54",
       "Cinegy.TtxDecoder >= 2.0.29-alpha2",
       "Microsoft.NETCore.Portable.Compatibility >= 1.0.1",
       "NETStandard.Library >= 1.6.1"
