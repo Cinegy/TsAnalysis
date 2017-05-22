@@ -380,8 +380,6 @@ namespace Cinegy.TsAnalysis
                     Key = "TableChange"
                 });
             }
-
-            Console.Clear();
         }
 
     }
