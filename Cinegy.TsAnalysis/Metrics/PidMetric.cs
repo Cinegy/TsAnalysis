@@ -6,11 +6,12 @@ using Cinegy.TsDecoder.TransportStream;
 
 namespace Cinegy.TsAnalysis.Metrics
 {
-//    [DataContract]
+    public delegate void DiscontinuityDetectedEventHandler(object sender, TransportStreamEventArgs args);
+    public delegate void TransportErrorIndicatorDetectedEventHandler(object sender, TransportStreamEventArgs args);
+
+    //    [DataContract]
     public class PidMetric : Telemetry.Metrics.Metric
     {
-        public delegate void DiscontinuityDetectedEventHandler(object sender, TransportStreamEventArgs args);
-        public delegate void TransportErrorIndicatorDetectedEventHandler(object sender, TransportStreamEventArgs args);
 
         private int _periodPacketCount = 0;
         private int _periodCcErrorCount = 0;
@@ -68,26 +69,19 @@ namespace Cinegy.TsAnalysis.Metrics
         public int PeriodPacketCount { get; private set; }
 
         public long TeiCount { get; private set; }
-
-         
+        
         public int PeriodTeiCount { get; private set; }
-
-         
+        
         public long CcErrorCount { get; private set; }
-
-         
+        
         public int PeriodCcErrorCount { get; private set; }
-
-         
+        
         public bool HasPcr { get; } = false;
-
-
+        
         public int PeriodLargestPcrDelta { get; private set; }
         
-         
         public int PeriodLargestPcrDrift { get; private set; }
-
-         
+        
         public int PeriodLowestPcrDrift { get; private set; }
 
         private int LastCc { get; set; }
@@ -103,6 +97,7 @@ namespace Cinegy.TsAnalysis.Metrics
                 {
                     TeiCount++;
                     _periodTeiCount++;
+                    OnTeiDetected(newPacket);
                 }
                 else
                 {
@@ -243,6 +238,21 @@ namespace Cinegy.TsAnalysis.Metrics
             var args = new TransportStreamEventArgs { TsPid = tsPacket.Pid };
             handler(this, args);
         }
-        
+
+        // Transport Error Indicator flag detected
+        public event TransportErrorIndicatorDetectedEventHandler TeiDetected;
+
+        private void OnTeiDetected(TsPacket tsPacket)
+        {
+            //reset reference PCR values used for drift check - set up reference values
+            _referencePcr = tsPacket.AdaptationField.Pcr;
+            _referenceTime = (ulong)(DateTime.UtcNow.Ticks * 2.7);
+
+            var handler = TeiDetected;
+            if (handler == null) return;
+            var args = new TransportStreamEventArgs { TsPid = tsPacket.Pid };
+            handler(this, args);
+        }
+
     }
 }

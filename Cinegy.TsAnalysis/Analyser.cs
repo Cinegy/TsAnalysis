@@ -130,6 +130,7 @@ namespace Cinegy.TsAnalysis
                     {
                         currentPidMetric = new PidMetric(SamplingPeriod) { Pid = tsPacket.Pid };
                         currentPidMetric.DiscontinuityDetected += CurrentPidMetric_DiscontinuityDetected;
+                        currentPidMetric.TeiDetected += CurrentPidMetric_TeiDetected;
                         PidMetrics.Add(currentPidMetric);
                     }
 
@@ -366,6 +367,8 @@ namespace Cinegy.TsAnalysis
 
         private void CurrentPidMetric_DiscontinuityDetected(object sender, TransportStreamEventArgs e)
         {
+            OnDiscontinuityDetected(e.TsPid);
+
             if (VerboseLogging)
             {
                 Logger.Log(new TelemetryLogEventInfo()
@@ -373,6 +376,21 @@ namespace Cinegy.TsAnalysis
                     Message = "Discontinuity on TS PID {e.TsPid}",
                     Level = LogLevel.Info,
                     Key = "Discontinuity"
+                });
+            }
+        }
+        
+        private void CurrentPidMetric_TeiDetected(object sender, TransportStreamEventArgs args)
+        {
+            OnTeiDetected(args.TsPid);
+
+            if (VerboseLogging)
+            {
+                Logger.Log(new TelemetryLogEventInfo()
+                {
+                    Message = "Transport Error Indicator on TS PID {e.TsPid}",
+                    Level = LogLevel.Info,
+                    Key = "Transport Error Indicator"
                 });
             }
         }
@@ -392,7 +410,29 @@ namespace Cinegy.TsAnalysis
         }
 
         public event TsMetricLogRecordReadyEventHandler TsMetricLogRecordReady;
+        
+        // Continuity Counter Error has been detected.
+        public event DiscontinuityDetectedEventHandler DiscontinuityDetected;
 
+        private void OnDiscontinuityDetected(int tsPid)
+        {
+            var handler = DiscontinuityDetected;
+            if (handler == null) return;
+            var args = new TransportStreamEventArgs { TsPid = tsPid };
+            handler(this, args);
+        }
+
+        // Transport Error Indicator flag detected
+        public event TransportErrorIndicatorDetectedEventHandler TeiDetected;
+
+        private void OnTeiDetected(int tsPid)
+        {
+            var handler = TeiDetected;
+            if (handler == null) return;
+            var args = new TransportStreamEventArgs { TsPid = tsPid };
+            handler(this, args);
+        }
+        
 
     }
 
