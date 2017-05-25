@@ -57,7 +57,7 @@ namespace Cinegy.TsAnalysis
 
         public NetworkMetric NetworkMetric { get; private set; }
 
-        public RtpMetric RtpMetric { get; private set; } = new RtpMetric();
+        public RtpMetric RtpMetric { get; private set; }
 
         public List<PidMetric> PidMetrics { get; private set; } = new List<PidMetric>();
 
@@ -268,6 +268,7 @@ namespace Cinegy.TsAnalysis
             while (_pendingExit != true)
             {
                 int dataSize;
+
                 ulong timestamp;
                 var capacity = RingBuffer.Remove(ref dataBuffer, out dataSize, out timestamp);
 
