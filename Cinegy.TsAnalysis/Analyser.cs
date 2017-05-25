@@ -93,6 +93,7 @@ namespace Cinegy.TsAnalysis
             var queueThread = new Thread(ProcessQueueWorkerThread) { };
 
             queueThread.Start();
+            
         }
 
         public void AnalysePackets(IEnumerable<TsPacket> tsPackets)
@@ -152,6 +153,7 @@ namespace Cinegy.TsAnalysis
         public void Cancel()
         {
             _pendingExit = true;
+            _periodicDataTimer.Dispose();
         }
 
         private void UpdateSeriesDataTimerCallback(object o)
@@ -207,7 +209,8 @@ namespace Cinegy.TsAnalysis
 
 
                 var handler = TsMetricLogRecordReady;
-                handler?.Invoke(this, new TsMetricLogRecordReadyEventHandlerArgs {  LogRecord = tsMetricLogRecord });
+                if (_pendingExit) return;
+                handler?.BeginInvoke(this, new TsMetricLogRecordReadyEventHandlerArgs {  LogRecord = tsMetricLogRecord },null,null);
             }
             catch (Exception ex)
             {
