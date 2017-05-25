@@ -7,7 +7,7 @@ using Cinegy.TsDecoder.TransportStream;
 namespace Cinegy.TsAnalysis.Metrics
 {
 //    [DataContract]
-    public class PidMetric : Cinegy.Telemetry.Metrics.Metric
+    public class PidMetric : Telemetry.Metrics.Metric
     {
         public delegate void DiscontinuityDetectedEventHandler(object sender, TransportStreamEventArgs args);
         public delegate void TransportErrorIndicatorDetectedEventHandler(object sender, TransportStreamEventArgs args);
@@ -15,7 +15,6 @@ namespace Cinegy.TsAnalysis.Metrics
         private int _periodPacketCount = 0;
         private int _periodCcErrorCount = 0;
         private int _periodTeiCount = 0;
-        private bool _hasPcr = false;
         private ulong _lastPcr = 0;
         private ulong _periodLargestPcrDelta;
         private int _periodLargestPcrDrift;
@@ -25,6 +24,11 @@ namespace Cinegy.TsAnalysis.Metrics
 
         private ulong _referencePcr;
         private ulong _referenceTime;
+
+        public PidMetric(int samplingPeriod = 5000)
+        {
+            SamplingPeriod = samplingPeriod;
+        }
 
         protected override void ResetPeriodTimerCallback(object o)
         {
@@ -75,9 +79,9 @@ namespace Cinegy.TsAnalysis.Metrics
         public int PeriodCcErrorCount { get; private set; }
 
          
-        public bool HasPcr => _hasPcr;
+        public bool HasPcr { get; } = false;
 
-         
+
         public int PeriodLargestPcrDelta { get; private set; }
         
          

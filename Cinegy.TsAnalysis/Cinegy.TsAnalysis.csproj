@@ -36,18 +36,19 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .NET Framework is automatically included -->
+    <None Include="Cinegy.TsAnalysis.nuspec" />
     <None Include="project.json" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Analyser.cs" />
     <Compile Include="Logging\TsMetricLogRecord.cs" />
     <Compile Include="Metrics\DataPacket.cs" />
-    <Compile Include="Metrics\Metric.cs" />
     <Compile Include="Metrics\NetworkMetric.cs" />
     <Compile Include="Metrics\PidMetric.cs" />
     <Compile Include="Metrics\RtpMetric.cs" />
     <Compile Include="Metrics\TsMetric.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Logging\TsMetricLogRecordReadyEventHandlerArgs.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

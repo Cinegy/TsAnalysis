@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Threading;
+
 //using System.Runtime.Serialization;
 
-namespace TsAnalysis.Metrics
+namespace Cinegy.TsAnalysis.Metrics
 {
     public abstract class Metric
     {
@@ -12,10 +13,10 @@ namespace TsAnalysis.Metrics
         internal readonly long TicksPerSecond;
         internal DateTime StartTime;
 
-        protected Metric()
+        protected Metric(int samplingPeriod)
         {
             TicksPerSecond = new TimeSpan(0, 0, 0, 1).Ticks;
-
+            SamplingPeriod = samplingPeriod;
             _periodTimer = new Timer(ResetPeriodTimerCallback, null, 0, SamplingPeriod);
         }
         

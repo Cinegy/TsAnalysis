@@ -10,6 +10,11 @@ namespace Cinegy.TsAnalysis.Metrics
         private long _totalPackets;
         private int _periodEstimatedLostPackets;
 
+        public RtpMetric(int samplingPeriod = 5000)
+        {
+            SamplingPeriod = samplingPeriod;
+        }
+
         protected override void ResetPeriodTimerCallback(object o)
         {
             lock (this)

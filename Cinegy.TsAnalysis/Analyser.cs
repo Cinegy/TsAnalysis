@@ -27,8 +27,9 @@ using Cinegy.TsDecoder.TransportStream;
 namespace Cinegy.TsAnalysis
 {
     public class Analyser
-    {        
-        
+    {
+        public delegate void TsMetricLogRecordReadyEventHandler(object sender, TsMetricLogRecordReadyEventHandlerArgs args);
+
         // ReSharper disable once NotAccessedField.Local
         private Timer _periodicDataTimer;
         private  DateTime _startTime = DateTime.UtcNow;
@@ -49,6 +50,11 @@ namespace Cinegy.TsAnalysis
 
         public bool VerboseLogging { get; set; }
 
+        /// <summary>
+        /// Sampling period of aggregated analytics in milliseconds
+        /// </summary>
+        public int SamplingPeriod { get; set; } = 5000;
+
         public NetworkMetric NetworkMetric { get; private set; }
 
         public RtpMetric RtpMetric { get; private set; } = new RtpMetric();
@@ -56,13 +62,7 @@ namespace Cinegy.TsAnalysis
         public List<PidMetric> PidMetrics { get; private set; } = new List<PidMetric>();
 
         public Logger Logger {
-            get
-            {
-                if (_logger == null)
-                    _logger = LogManager.CreateNullLogger();
-
-                return _logger;                    
-            }
+            get { return _logger ?? (_logger = LogManager.CreateNullLogger()); }
             set
             {
                 _logger = value;
@@ -71,7 +71,7 @@ namespace Cinegy.TsAnalysis
 
         public ulong LastPcr { get ; set ; }
 
-        public TsDecoder.TransportStream.TsDecoder TsDecoder { get;set; }
+        public TsDecoder.TransportStream.TsDecoder TsDecoder { get;set; } = new TsDecoder.TransportStream.TsDecoder();
 
         public int SelectedPcrPid { get; set; }
 
@@ -86,7 +86,7 @@ namespace Cinegy.TsAnalysis
 
         public void Setup(string multicastAddress = "", int multicastPort = 0)
         {
-            _periodicDataTimer = new Timer(UpdateSeriesDataTimerCallback, null, 0, 5000);
+            _periodicDataTimer = new Timer(UpdateSeriesDataTimerCallback, null, 0, SamplingPeriod);
 
             SetupMetricsAndDecoders(multicastAddress, multicastPort);
 
@@ -127,7 +127,7 @@ namespace Cinegy.TsAnalysis
 
                     if (currentPidMetric == null)
                     {
-                        currentPidMetric = new PidMetric { Pid = tsPacket.Pid };
+                        currentPidMetric = new PidMetric(SamplingPeriod) { Pid = tsPacket.Pid };
                         currentPidMetric.DiscontinuityDetected += CurrentPidMetric_DiscontinuityDetected;
                         PidMetrics.Add(currentPidMetric);
                     }
@@ -204,10 +204,15 @@ namespace Cinegy.TsAnalysis
                 };
 
                 Logger.Log(lei);
+
+
+                var handler = TsMetricLogRecordReady;
+                handler?.Invoke(this, new TsMetricLogRecordReadyEventHandlerArgs {  LogRecord = tsMetricLogRecord });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                Logger.Error("Problem generating time-slice log record");
+                Logger.Error($"Problem generating time-slice log record: {ex.Message}");
+                throw;
             }
 
         }
@@ -223,12 +228,13 @@ namespace Cinegy.TsAnalysis
                     NetworkMetric = new NetworkMetric()
                     {
                         MulticastAddress = multicastAddress,
-                        MulticastGroup = multicastPort
+                        MulticastGroup = multicastPort,
+                        SamplingPeriod = SamplingPeriod
                     };
                     NetworkMetric.BufferOverflow += NetworkMetric_BufferOverflow;
                 }
 
-                RtpMetric = new RtpMetric();
+                RtpMetric = new RtpMetric(SamplingPeriod);
 
                 RtpMetric.SequenceDiscontinuityDetected += RtpMetric_SequenceDiscontinuityDetected;
 
@@ -382,5 +388,9 @@ namespace Cinegy.TsAnalysis
             }
         }
 
+        public event TsMetricLogRecordReadyEventHandler TsMetricLogRecordReady;
+
+
     }
+
 }
