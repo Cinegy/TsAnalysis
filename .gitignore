@@ -4,3 +4,4 @@ obj
 *.nupkg
 TestResults
 *.user
+/Cinegy.TsAnalysis/project.lock.json
