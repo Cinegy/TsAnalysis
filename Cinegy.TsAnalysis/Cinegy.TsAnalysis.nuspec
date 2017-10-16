@@ -10,7 +10,7 @@
     <projectUrl>https://github.com/Cinegy/TsAnalysis</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
-    <releaseNotes>Initial release for centralised transport stream analysis library.</releaseNotes>
+    <releaseNotes>Updated release as downstream libraries stabilize.</releaseNotes>
     <copyright>Copyright Cinegy GmbH 2017</copyright>
     <tags>Transport Stream MPEGTS Analysis</tags>
   </metadata>

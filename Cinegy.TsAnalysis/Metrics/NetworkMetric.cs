@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
@@ -216,8 +217,9 @@ namespace Cinegy.TsAnalysis.Metrics
         /// <summary>
         /// Any time the value for time between packets exceeds this value, an event will be raised.
         /// </summary>
-        public int MaxIat { get; set; } 
+        public int MaxIat { get; set; }
 
+        [JsonIgnore]
         public UdpClient UdpClient { get; set; }
 
         public static long AccurateCurrentTime()

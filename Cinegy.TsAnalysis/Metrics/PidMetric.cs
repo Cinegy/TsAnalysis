@@ -189,15 +189,14 @@ namespace Cinegy.TsAnalysis.Metrics
 
                 if (LastCc == newPacket.ContinuityCounter)
                 {
+                    //CC should only be expected to increase if data is present
+                    //E.g. a pid used for PCR only may never increase CC
                     if (newPacket.ContainsPayload)
                     {
                         CcErrorCount++;
                         _periodCcErrorCount++;
                     }
-
-                    //special case of no data... ignore for now
-                    //TODO: check for no data flag in original packet
-                    Debug.Assert(true, "Special CC repeated case - requires investigation!");
+                    
                     return;
                 }
 
