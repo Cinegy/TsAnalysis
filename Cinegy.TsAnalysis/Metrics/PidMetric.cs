@@ -25,7 +25,8 @@ namespace Cinegy.TsAnalysis.Metrics
 
         private ulong _referencePcr;
         private ulong _referenceTime;
-
+        private DateTime _startTime = DateTime.UtcNow;
+                
         public PidMetric(int samplingPeriod = 5000)
         {
             SamplingPeriod = samplingPeriod;
@@ -120,7 +121,7 @@ namespace Cinegy.TsAnalysis.Metrics
             if (!tsPacket.AdaptationFieldExists) return;
             if (!tsPacket.AdaptationField.PcrFlag) return;
             if (tsPacket.AdaptationField.FieldSize < 1) return;
-
+            
             if (tsPacket.AdaptationField.DiscontinuityIndicator)
             {
                 Debug.WriteLine("Adaptation field discont indicator");
@@ -159,7 +160,11 @@ namespace Cinegy.TsAnalysis.Metrics
             }
             else
             {
-                //first PCR value - set up reference values
+                //first PCR value - set up reference values               
+                
+                //wait 10 seconds before sampling datum PCR time - otherwise everything drifts immediately as analyser finishes launching tasks
+                if (DateTime.UtcNow.Subtract(_startTime) < TimeSpan.FromSeconds(10)) return;
+
                 _referencePcr = tsPacket.AdaptationField.Pcr;
                 _referenceTime = (ulong)(DateTime.UtcNow.Ticks*2.7);
             }
