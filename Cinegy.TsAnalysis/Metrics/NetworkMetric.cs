@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace Cinegy.TsAnalysis.Metrics
 {
   //  [DataContract]
-    public class NetworkMetric : Cinegy.Telemetry.Metrics.Metric
+    public class NetworkMetric : Telemetry.Metrics.Metric
     {
         private const string Lib = "kernel32.dll";
 
