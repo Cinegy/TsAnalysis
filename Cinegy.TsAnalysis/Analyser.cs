@@ -61,12 +61,11 @@ namespace Cinegy.TsAnalysis
 
         public List<PidMetric> PidMetrics { get; private set; } = new List<PidMetric>();
 
+        public TeletextMetric TeletextMetric { get; private set; }
+
         public Logger Logger {
-            get { return _logger ?? (_logger = LogManager.CreateNullLogger()); }
-            set
-            {
-                _logger = value;
-            }
+            get => _logger ?? (_logger = LogManager.CreateNullLogger());
+            set => _logger = value;
         }
 
         public ulong LastPcr { get ; set ; }
@@ -90,7 +89,7 @@ namespace Cinegy.TsAnalysis
 
             SetupMetricsAndDecoders(multicastAddress, multicastPort);
 
-            var queueThread = new Thread(ProcessQueueWorkerThread) { };
+            var queueThread = new Thread(ProcessQueueWorkerThread);
 
             queueThread.Start();
             
@@ -135,6 +134,8 @@ namespace Cinegy.TsAnalysis
                     }
 
                     currentPidMetric.AddPacket(tsPacket);
+
+
 
                     if (TsDecoder == null) continue;
                     lock (TsDecoder)
@@ -227,23 +228,21 @@ namespace Cinegy.TsAnalysis
             {
                 _startTime = DateTime.UtcNow;
 
-                if (!string.IsNullOrWhiteSpace(multicastAddress))
+                NetworkMetric = new NetworkMetric()
                 {
-                    NetworkMetric = new NetworkMetric()
-                    {
-                        MulticastAddress = multicastAddress,
-                        MulticastGroup = multicastPort,
-                        SamplingPeriod = SamplingPeriod
-                    };
-                    NetworkMetric.BufferOverflow += NetworkMetric_BufferOverflow;
-                }
-
+                    MulticastAddress = multicastAddress,
+                    MulticastGroup = multicastPort,
+                    SamplingPeriod = SamplingPeriod
+                };
+                
+                NetworkMetric.BufferOverflow += NetworkMetric_BufferOverflow;
+                
                 RtpMetric = new RtpMetric(SamplingPeriod);
 
                 RtpMetric.SequenceDiscontinuityDetected += RtpMetric_SequenceDiscontinuityDetected;
 
                 PidMetrics = new List<PidMetric>();
-
+                
                 if (InspectTsPackets)
                 {
                     TsDecoder = new TsDecoder.TransportStream.TsDecoder();
@@ -255,7 +254,10 @@ namespace Cinegy.TsAnalysis
                     TeletextDecoder = SelectedProgramNumber > 1
                         ? new TeletextDecoder(SelectedProgramNumber)
                         : new TeletextDecoder();
+                    
+                        TeletextMetric = new TeletextMetric(TeletextDecoder.Service);
                 }
+
 
             }
         }
@@ -267,10 +269,7 @@ namespace Cinegy.TsAnalysis
 
             while (_pendingExit != true)
             {
-                int dataSize;
-
-                ulong timestamp;
-                var capacity = RingBuffer.Remove(ref dataBuffer, out dataSize, out timestamp);
+                var capacity = RingBuffer.Remove(ref dataBuffer, out var dataSize, out var timestamp);
 
                 if (capacity > 0)
                 {
@@ -294,13 +293,17 @@ namespace Cinegy.TsAnalysis
                 {
                     lock (NetworkMetric)
                     {
-                        //TODO: Inject ringbuffer delta below (after removing queue) - I THINK THE BELOW IS NOW DONE)
                         NetworkMetric.AddPacket(dataBuffer, (long)timestamp, RingBuffer.BufferFullness);
 
                         if (HasRtpHeaders)
                         {
                             RtpMetric.AddPacket(dataBuffer);
                         }
+
+                        //todo: make teletext metric work again
+                        //if(TeletextMetric!=null)
+                        //    TeletextMetric.AddPacket(dataBuffer);
+
 
                         try
                         {

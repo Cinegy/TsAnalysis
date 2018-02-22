@@ -1,11 +1,8 @@
 ﻿using System;
 
-//using System.Runtime.Serialization;
-
 namespace Cinegy.TsAnalysis.Metrics
 {
-    //[DataContract]
-    public class RtpMetric : Cinegy.Telemetry.Metrics.Metric
+    public class RtpMetric : Telemetry.Metrics.Metric
     {
         private long _totalPackets;
         private int _periodEstimatedLostPackets;

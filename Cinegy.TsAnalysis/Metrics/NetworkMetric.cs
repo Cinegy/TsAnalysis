@@ -3,11 +3,8 @@ using System;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
-//using System.Runtime.Serialization;
-
 namespace Cinegy.TsAnalysis.Metrics
 {
-  //  [DataContract]
     public class NetworkMetric : Telemetry.Metrics.Metric
     {
         private const string Lib = "kernel32.dll";
@@ -26,7 +23,6 @@ namespace Cinegy.TsAnalysis.Metrics
         private int _periodShortestTimeBetweenPackets;
         private float _periodMaxBufferUsage;
         private int _periodData;
-       // private float _periodAverageTimeBetweenPackets;
         private int _periodMaxPacketQueue;
         
         private long _timerFreq;
@@ -49,10 +45,7 @@ namespace Cinegy.TsAnalysis.Metrics
 
                 PeriodData = _periodData;
                 _periodData = 0;
-
-                //PeriodAverageTimeBetweenPackets = _periodAverageTimeBetweenPackets;
-                //_periodAverageTimeBetweenPackets = 0;
-
+                
                 PeriodMaxPacketQueue = _periodMaxPacketQueue;
                 _periodMaxPacketQueue = 0;
 
@@ -224,8 +217,7 @@ namespace Cinegy.TsAnalysis.Metrics
 
         public static long AccurateCurrentTime()
         {
-            long time;
-            QueryPerformanceCounter(out time);
+            QueryPerformanceCounter(out var time);
             return time;
         }
 
@@ -252,9 +244,9 @@ namespace Cinegy.TsAnalysis.Metrics
 
                 _currentPacketTime = recvTimeMs;
                 
-                var timeBetweenLastPacket = ((long)_currentPacketTime - _lastPacketTime);
+                var timeBetweenLastPacket = _currentPacketTime - _lastPacketTime;
                
-                TimeBetweenLastPacket =(long) timeBetweenLastPacket;
+                TimeBetweenLastPacket =timeBetweenLastPacket;
 
                 _lastPacketTime = _currentPacketTime;
 
