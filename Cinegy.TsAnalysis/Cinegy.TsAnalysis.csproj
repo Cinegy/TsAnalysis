@@ -10,14 +10,14 @@
     <PackageTags>Transport Stream Analysis MPEGTS</PackageTags>
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Cinegy/TsAnalysis</PackageProjectUrl>
-    <PackageReleaseNotes>Now with multiple builds targetting NET Framework 4.6.1 and NET Core 2.0</PackageReleaseNotes>
+    <PackageReleaseNotes>Updated packages and taking beta packs for NLog to fix remaining warning for NET Core</PackageReleaseNotes>
     <NeutralLanguage />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Cinegy.Telemetry" Version="2.0.17" />
-    <PackageReference Include="Cinegy.TtxDecoder" Version="2.0.33" />
+    <PackageReference Include="Cinegy.Telemetry" Version="2.0.19-beta" />
+    <PackageReference Include="Cinegy.TtxDecoder" Version="2.0.34-beta" />
     <PackageReference Include="Cinegy.TsDecoder" Version="3.0.101-beta" />
   </ItemGroup>
 
