@@ -5,3 +5,4 @@ obj
 TestResults
 *.user
 /Cinegy.TsAnalysis/project.lock.json
+.DS_Store

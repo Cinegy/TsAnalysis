@@ -8,7 +8,6 @@ namespace Cinegy.TsAnalysis.Metrics
     public class NetworkMetric : Telemetry.Metrics.Metric
     {
         private const string Lib = "kernel32.dll";
-
         private bool _averagesReady;
         private bool _bufferOverflow;
         private long _currentPacketTime;
@@ -25,7 +24,7 @@ namespace Cinegy.TsAnalysis.Metrics
         private int _periodData;
         private int _periodMaxPacketQueue;
         
-        private long _timerFreq;
+        //private long _timerFreq;
 
         protected override void ResetPeriodTimerCallback(object o)
         {
@@ -217,15 +216,22 @@ namespace Cinegy.TsAnalysis.Metrics
 
         public static long AccurateCurrentTime()
         {
-            QueryPerformanceCounter(out var time);
+            long time;
+            #if !NET461
+                time = DateTime.UtcNow.Ticks;
+            #else
+                QueryPerformanceCounter(out time);
+            #endif
             return time;
         }
 
+#if NET461
         [DllImport(Lib)]
         private static extern int QueryPerformanceCounter(out long count);
 
-        [DllImport(Lib)]
-        private static extern bool QueryPerformanceFrequency(out long lpFrequency);
+//        [DllImport(Lib)]
+//        private static extern bool QueryPerformanceFrequency(out long lpFrequency);
+#endif
 
         public void AddPacket(byte[] data, long recvTimeMs, int currentQueueSize)
         {
@@ -302,7 +308,7 @@ namespace Cinegy.TsAnalysis.Metrics
                         if (CurrentBitrate < LowestBitrate) LowestBitrate = CurrentBitrate;
 
                         _dataThisSecond = 0;
-                        _currentSampleTime = DateTime.Now.Ticks;
+                        _currentSampleTime = AccurateCurrentTime();
                     }
                 }
 
@@ -331,10 +337,9 @@ namespace Cinegy.TsAnalysis.Metrics
 
         private void RegisterFirstPacket()
         {
-            StartTime = DateTime.UtcNow;
-            _currentSampleTime = StartTime.Ticks;
-            QueryPerformanceFrequency(out _timerFreq);
-            QueryPerformanceCounter(out _lastPacketTime);
+            _currentSampleTime = AccurateCurrentTime();
+            //QueryPerformanceFrequency(out _timerFreq);
+            _lastPacketTime = AccurateCurrentTime();
         }
     
         public event  EventHandler BufferOverflow;
