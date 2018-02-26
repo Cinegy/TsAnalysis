@@ -32,11 +32,12 @@ namespace Cinegy.TsAnalysis
 
         // ReSharper disable once NotAccessedField.Local
         private Timer _periodicDataTimer;
-        private  DateTime _startTime = DateTime.UtcNow;
         private bool _pendingExit;
         private Logger _logger;
 
         public TeletextDecoder TeletextDecoder { get; set; }
+
+        public DateTime StartTime { get; private set; }
 
         public RingBuffer RingBuffer { get; } = new RingBuffer();
         
@@ -226,7 +227,7 @@ namespace Cinegy.TsAnalysis
         {
             lock (PidMetrics)
             {
-                _startTime = DateTime.UtcNow;
+                StartTime = DateTime.UtcNow;
 
                 NetworkMetric = new NetworkMetric()
                 {
@@ -255,11 +256,17 @@ namespace Cinegy.TsAnalysis
                         ? new TeletextDecoder(SelectedProgramNumber)
                         : new TeletextDecoder();
                     
-                        TeletextMetric = new TeletextMetric(TeletextDecoder.Service);
+                    TeletextMetric = new TeletextMetric(TeletextDecoder.Service);
+                    TeletextDecoder.Service.TeletextPacketsReady += Service_TeletextPacketsReady;
                 }
 
 
             }
+        }
+
+        private void Service_TeletextPacketsReady(object sender, TeletextPacketsReadyEventArgs e)
+        {
+            TeletextMetric?.AddPackets(e.Packets);
         }
 
         private void ProcessQueueWorkerThread()
@@ -299,12 +306,7 @@ namespace Cinegy.TsAnalysis
                         {
                             RtpMetric.AddPacket(dataBuffer);
                         }
-
-                        //todo: make teletext metric work again
-                        //if(TeletextMetric!=null)
-                        //    TeletextMetric.AddPacket(dataBuffer);
-
-
+                        
                         try
                         {
                             var tsPackets = factory.GetTsPacketsFromData(dataBuffer);

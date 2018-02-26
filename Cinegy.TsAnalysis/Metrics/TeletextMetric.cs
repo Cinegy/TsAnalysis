@@ -63,6 +63,14 @@ namespace Cinegy.TsAnalysis.Metrics
             set;
         } = new Dictionary<int, long>(256);
 
+        public void AddPackets(List<TeletextPacket> packets)
+        {
+            foreach (var teletextPacket in packets)
+            {
+                AddPacket(teletextPacket);
+            }
+        }
+
         public void AddPacket(TeletextPacket newPacket)
         {
             try
