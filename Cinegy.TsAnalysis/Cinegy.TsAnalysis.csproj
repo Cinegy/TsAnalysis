@@ -1,24 +1,24 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net461;netcoreapp2.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <Version>0.0.0-beta</Version>
     <Authors>Lewis Kirkaldie</Authors>
     <Company>Cinegy GmbH</Company>
-    <Description>Analysis engine for parsing data from Cinegy TsDecoder, in C# targetting NET Framework 4.6.1 and NET Core 2.0</Description>
+    <Description>Analysis engine for parsing data from Cinegy TsDecoder, in C# targetting NET Standard 2.0</Description>
     <Copyright>Cinegy GmbH</Copyright>
     <PackageTags>Transport Stream Analysis MPEGTS</PackageTags>
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Cinegy/TsAnalysis</PackageProjectUrl>
-    <PackageReleaseNotes>Teletext metrics should fully work again</PackageReleaseNotes>
+    <PackageReleaseNotes>Moved up to netstandard2.0 and dependency update </PackageReleaseNotes>
     <NeutralLanguage />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Cinegy.Telemetry" Version="2.0.19-beta" />
-    <PackageReference Include="Cinegy.TtxDecoder" Version="2.0.36-beta" />
-    <PackageReference Include="Cinegy.TsDecoder" Version="3.0.101-beta" />
+    <PackageReference Include="Cinegy.Telemetry" Version="2.0.20-beta" />
+    <PackageReference Include="Cinegy.TtxDecoder" Version="2.0.37-beta" />
+    <PackageReference Include="Cinegy.TsDecoder" Version="3.0.113-beta" />
   </ItemGroup>
 
 
