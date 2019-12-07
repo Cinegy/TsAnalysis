@@ -71,6 +71,9 @@ namespace Cinegy.TsAnalysis
 
         public ulong LastPcr { get ; set ; }
 
+        public ulong LastVidPts { get; set; }
+        public ulong LastSubPts { get; set; }
+
         public TsDecoder.TransportStream.TsDecoder TsDecoder { get;set; } = new TsDecoder.TransportStream.TsDecoder();
 
         public int SelectedPcrPid { get; set; }
@@ -116,6 +119,29 @@ namespace Cinegy.TsAnalysis
                                 LastPcr = tsPacket.AdaptationField.Pcr;
                             }
                         }
+                    }
+
+                    if (tsPacket.PesHeader.Pts > 0)
+                    {
+                        if (tsPacket.Pid == 4096)
+                        {
+                            LastVidPts = (ulong)tsPacket.PesHeader.Pts;
+                        }
+
+                        if (tsPacket.Pid == 2049)
+                        {
+                            LastSubPts = (ulong)tsPacket.PesHeader.Pts;
+                        }
+                        /*
+                        if (SelectedPcrPid != 0)
+                        {
+                            if (tsPacket.Pid == SelectedPcrPid)
+                                LastPts = (ulong)tsPacket.PesHeader.Pts;
+                        }
+                        else
+                        {
+                            LastPts = (ulong)tsPacket.PesHeader.Pts;
+                        }*/
                     }
 
                     PidMetric currentPidMetric = null;

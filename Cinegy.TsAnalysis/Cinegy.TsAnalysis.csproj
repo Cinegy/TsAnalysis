@@ -17,8 +17,10 @@
 
   <ItemGroup>
     <PackageReference Include="Cinegy.Telemetry" Version="2.0.22-beta" />
-    <PackageReference Include="Cinegy.TtxDecoder" Version="2.0.38-beta" />
-    <PackageReference Include="Cinegy.TsDecoder" Version="3.0.118-beta" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\TtxDecoder\Cinegy.TtxDecoder\Cinegy.TtxDecoder.csproj" />
   </ItemGroup>
 
 
