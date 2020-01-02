@@ -1,4 +1,4 @@
-﻿/*   Copyright 2017 Cinegy GmbH
+﻿/*   Copyright 2017-2020 Cinegy GmbH
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -339,7 +339,7 @@ namespace Cinegy.TsAnalysis
 
                             if (tsPackets == null)
                             {
-                                Logger.Log(new TelemetryLogEventInfo() { Message = "Packet recieved with no detected TS packets", Level = LogLevel.Info, Key = "Packet" });
+                                Logger.Log(new TelemetryLogEventInfo() { Message = "Packet received with no detected TS packets", Level = LogLevel.Info, Key = "Packet" });
                                 continue;
                             }
 

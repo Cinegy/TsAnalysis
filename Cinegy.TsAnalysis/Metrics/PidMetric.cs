@@ -13,14 +13,14 @@ namespace Cinegy.TsAnalysis.Metrics
     public class PidMetric : Telemetry.Metrics.Metric
     {
 
-        private int _periodPacketCount = 0;
-        private int _periodCcErrorCount = 0;
-        private int _periodTeiCount = 0;
-        private ulong _lastPcr = 0;
+        private int _periodPacketCount;
+        private int _periodCcErrorCount;
+        private int _periodTeiCount;
+        private ulong _lastPcr;
         private ulong _periodLargestPcrDelta;
         private int _periodLargestPcrDrift;
         private int _periodLowestPcrDrift;
-        private int _largePcrDriftCount = 0;
+        private int _largePcrDriftCount;
         private const int PcrDriftLimit = 100;
 
         private ulong _referencePcr;

@@ -1,13 +1,12 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Diagnostics;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 
 namespace Cinegy.TsAnalysis.Metrics
 {
     public class NetworkMetric : Telemetry.Metrics.Metric
     {
-        private const string Lib = "kernel32.dll";
         private bool _averagesReady;
         private bool _bufferOverflow;
         private long _currentPacketTime;
@@ -216,22 +215,10 @@ namespace Cinegy.TsAnalysis.Metrics
 
         public static long AccurateCurrentTime()
         {
-            long time;
-            #if !NET461
-                time = DateTime.UtcNow.Ticks;
-            #else
-                QueryPerformanceCounter(out time);
-            #endif
+            var time = Stopwatch.GetTimestamp();
+
             return time;
         }
-
-#if NET461
-        [DllImport(Lib)]
-        private static extern int QueryPerformanceCounter(out long count);
-
-//        [DllImport(Lib)]
-//        private static extern bool QueryPerformanceFrequency(out long lpFrequency);
-#endif
 
         public void AddPacket(byte[] data, long recvTimeMs, int currentQueueSize)
         {

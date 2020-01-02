@@ -2,14 +2,14 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
-    <Version>0.0.0-beta</Version>
+    <Version>1.0.0</Version>
     <Authors>Lewis Kirkaldie</Authors>
     <Company>Cinegy GmbH</Company>
     <Description>Analysis engine for parsing data from Cinegy TsDecoder, in C# targetting NET Standard 2.0</Description>
     <Copyright>Cinegy GmbH</Copyright>
     <PackageTags>Transport Stream Analysis MPEGTS</PackageTags>
     <PackageProjectUrl>https://github.com/Cinegy/TsAnalysis</PackageProjectUrl>
-    <PackageReleaseNotes>Moved up to netstandard2.0 and dependency update </PackageReleaseNotes>
+    <PackageReleaseNotes>Move timing to use Stopwatch, remove beta flag</PackageReleaseNotes>
     <NeutralLanguage />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -17,11 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="Cinegy.Telemetry" Version="2.0.22-beta" />
+    <PackageReference Include="Cinegy.TtxDecoder" Version="2.0.43" />
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\TtxDecoder\Cinegy.TtxDecoder\Cinegy.TtxDecoder.csproj" />
-  </ItemGroup>
-
 
 </Project>

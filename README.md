@@ -4,8 +4,6 @@ Use this library to analyse MPEGTS (including DVB) transport streams - tested wi
 
 ## How easy is it?
 
-TODO: Fill in
-
 See all of this in action inside the Cinegy TS Analyser tool here: [GitHub] [https://github.com/cinegy/tsanalyser]
     
 ## Getting the library
