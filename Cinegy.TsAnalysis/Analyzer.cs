@@ -26,7 +26,16 @@ using Cinegy.TsDecoder.TransportStream;
 
 namespace Cinegy.TsAnalysis
 {
-    public class Analyser
+    [Obsolete("This class is has been renamed to 'Analyzer', and is now just a wrapper around this rename - please migrate.")]
+    public class Analyser : Analyzer
+    {
+        [ObsoleteAttribute("This method has been renamed to AnalyzePackets, and this method is now just a wrapper around this rename - please migrate")]
+        public void AnalysePackets(IEnumerable<TsPacket> tsPackets){
+            AnalyzePackets(tsPackets);
+        }
+    }
+
+    public class Analyzer
     {
         public delegate void TsMetricLogRecordReadyEventHandler(object sender, TsMetricLogRecordReadyEventHandlerArgs args);
 
@@ -78,11 +87,11 @@ namespace Cinegy.TsAnalysis
 
         public int SelectedPcrPid { get; set; }
 
-        public Analyser()
+        public Analyzer()
         {
         }
 
-        public Analyser(Logger logger)
+        public Analyzer(Logger logger)
         {
             Logger = logger;
         }
@@ -99,7 +108,8 @@ namespace Cinegy.TsAnalysis
             
         }
 
-        public void AnalysePackets(IEnumerable<TsPacket> tsPackets)
+
+        public void AnalyzePackets(IEnumerable<TsPacket> tsPackets)
         {
             lock (PidMetrics)
             {
@@ -343,7 +353,7 @@ namespace Cinegy.TsAnalysis
                                 continue;
                             }
 
-                            AnalysePackets(tsPackets);
+                            AnalyzePackets(tsPackets);
                         }
                         catch (Exception ex)
                         {

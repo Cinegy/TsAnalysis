@@ -1,10 +1,10 @@
 ﻿# Cinegy Transport Stream Analysis Library
 
-Use this library to analyse MPEGTS (including DVB) transport streams - tested with various streams, from Multicast and File sources, with single- and multi-program streams.
+Use this library to analyze MPEGTS (including DVB) transport streams - tested with various streams, from Multicast and File sources, with single- and multi-program streams.
 
 ## How easy is it?
 
-See all of this in action inside the Cinegy TS Analyser tool here: [GitHub] [https://github.com/cinegy/tsanalyser]
+See all of this in action inside the Cinegy TS Analyzer tool here: [GitHub] [https://github.com/cinegy/tsanalyser]
     
 ## Getting the library
 
