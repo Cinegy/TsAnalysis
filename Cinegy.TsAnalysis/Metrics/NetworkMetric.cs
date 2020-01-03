@@ -303,7 +303,7 @@ namespace Cinegy.TsAnalysis.Metrics
                     MaxNetworkBufferUsage = buffVal;
                 }
 
-                if (NetworkBufferUsage > 99)
+                if (buffVal > 99)
                 {
                     OnBufferOverflow();
                 }

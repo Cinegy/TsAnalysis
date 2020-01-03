@@ -39,7 +39,7 @@ namespace Cinegy.TsAnalysis
 
         public DateTime StartTime { get; private set; }
 
-        public RingBuffer RingBuffer { get; } = new RingBuffer();
+        public RingBuffer RingBuffer { get; } = new RingBuffer(5000,1500,true);
         
         public bool HasRtpHeaders { get; set; } = true;
 
