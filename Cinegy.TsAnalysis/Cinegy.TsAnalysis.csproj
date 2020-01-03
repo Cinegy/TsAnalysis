@@ -9,14 +9,14 @@
     <Copyright>Cinegy GmbH</Copyright>
     <PackageTags>Transport Stream Analysis MPEGTS</PackageTags>
     <PackageProjectUrl>https://github.com/Cinegy/TsAnalysis</PackageProjectUrl>
-    <PackageReleaseNotes>Move timing to use Stopwatch, remove beta flag</PackageReleaseNotes>
+    <PackageReleaseNotes>Update telemetry package</PackageReleaseNotes>
     <NeutralLanguage />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Cinegy.Telemetry" Version="2.0.22-beta" />
+    <PackageReference Include="Cinegy.Telemetry" Version="2.0.24" />
     <PackageReference Include="Cinegy.TtxDecoder" Version="2.0.43" />
   </ItemGroup>
 
