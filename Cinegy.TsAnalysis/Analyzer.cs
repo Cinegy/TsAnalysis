@@ -26,15 +26,6 @@ using Cinegy.TsDecoder.TransportStream;
 
 namespace Cinegy.TsAnalysis
 {
-    [Obsolete("This class is has been renamed to 'Analyzer', and is now just a wrapper around this rename - please migrate.")]
-    public class Analyser : Analyzer
-    {
-        [ObsoleteAttribute("This method has been renamed to AnalyzePackets, and this method is now just a wrapper around this rename - please migrate")]
-        public void AnalysePackets(IEnumerable<TsPacket> tsPackets){
-            AnalyzePackets(tsPackets);
-        }
-    }
-
     public class Analyzer
     {
         public delegate void TsMetricLogRecordReadyEventHandler(object sender, TsMetricLogRecordReadyEventHandlerArgs args);
