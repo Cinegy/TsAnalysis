@@ -203,13 +203,7 @@ namespace Cinegy.TsAnalysis.Metrics
         /// Maximum value for count of packets waiting in queue within the last sampling period
         /// </summary>
         public float PeriodMaxPacketQueue { get; private set; }
-
-
-        /// <summary>
-        /// Any time the value for time between packets exceeds this value, an event will be raised.
-        /// </summary>
-        public int MaxIat { get; set; }
-
+        
         [JsonIgnore]
         public UdpClient UdpClient { get; set; }
 
@@ -260,8 +254,6 @@ namespace Cinegy.TsAnalysis.Metrics
                     if (TimeBetweenLastPacket < ShortestTimeBetweenPackets)
                         ShortestTimeBetweenPackets = TimeBetweenLastPacket;
 
-
-
                     if (DateTime.UtcNow.Second == _currentSecond)
                     {
                         _packetsThisSecond++;
@@ -279,7 +271,7 @@ namespace Cinegy.TsAnalysis.Metrics
                 TotalData += data.Length;
                 _periodData += data.Length;
 
-                if (DateTime.Now.Ticks - _currentSampleTime < TicksPerSecond)
+                if (AccurateCurrentTime() - _currentSampleTime < TicksPerSecond)
                 {
                     _dataThisSecond += data.Length;
                 }
@@ -324,8 +316,8 @@ namespace Cinegy.TsAnalysis.Metrics
 
         private void RegisterFirstPacket()
         {
+            StartTime = DateTime.UtcNow;
             _currentSampleTime = AccurateCurrentTime();
-            //QueryPerformanceFrequency(out _timerFreq);
             _lastPacketTime = AccurateCurrentTime();
         }
     

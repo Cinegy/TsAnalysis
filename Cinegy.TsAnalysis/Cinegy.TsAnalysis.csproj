@@ -9,7 +9,7 @@
     <Copyright>Cinegy GmbH</Copyright>
     <PackageTags>Transport Stream Analysis MPEGTS</PackageTags>
     <PackageProjectUrl>https://github.com/Cinegy/TsAnalysis</PackageProjectUrl>
-    <PackageReleaseNotes>Update telemetry package</PackageReleaseNotes>
+    <PackageReleaseNotes>Fix network bitrate metrics</PackageReleaseNotes>
     <NeutralLanguage />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
