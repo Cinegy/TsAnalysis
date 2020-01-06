@@ -24,7 +24,7 @@ namespace Cinegy.TsAnalysis.Metrics
         private const int PcrDriftLimit = 100;
 
         private ulong _referencePcr;
-        private ulong _referenceTime;
+        private long _referenceTime;
         private DateTime _startTime = DateTime.UtcNow;
                 
         public PidMetric(int samplingPeriod = 5000)
@@ -87,7 +87,7 @@ namespace Cinegy.TsAnalysis.Metrics
 
         private int LastCc { get; set; }
         
-        public void AddPacket(TsPacket newPacket)
+        public void AddPacket(TsPacket newPacket, long recvTimsMs = -1)
         {
             try
             {
@@ -103,7 +103,7 @@ namespace Cinegy.TsAnalysis.Metrics
                 else
                 {
                     CheckCcContinuity(newPacket);
-                    CheckPcr(newPacket);
+                    CheckPcr(newPacket, recvTimsMs);
                     LastCc = newPacket.ContinuityCounter;
                 }
 
@@ -116,7 +116,7 @@ namespace Cinegy.TsAnalysis.Metrics
             }
         }
 
-        private void CheckPcr(TsPacket tsPacket)
+        private void CheckPcr(TsPacket tsPacket, long recvTimeMs)
         {
             if (!tsPacket.AdaptationFieldExists) return;
             if (!tsPacket.AdaptationField.PcrFlag) return;
@@ -134,7 +134,11 @@ namespace Cinegy.TsAnalysis.Metrics
                 if (latestDelta > _periodLargestPcrDelta) _periodLargestPcrDelta = latestDelta;
 
                 var elapsedPcr = (long)(tsPacket.AdaptationField.Pcr - _referencePcr);
-                var elapsedClock = (long)((DateTime.UtcNow.Ticks * 2.7) - _referenceTime);
+                
+                
+                //var elapsedClock = (long)((DateTime.UtcNow.Ticks * 2.7) - _referenceTime);
+                var elapsedClock = (recvTimeMs * 27000) - _referenceTime;
+                
                 var drift = (int)(elapsedClock - elapsedPcr) / 27000;
 
                 if (drift > _periodLargestPcrDrift)
@@ -166,14 +170,14 @@ namespace Cinegy.TsAnalysis.Metrics
                 if (DateTime.UtcNow.Subtract(_startTime) < TimeSpan.FromSeconds(10)) return;
 
                 _referencePcr = tsPacket.AdaptationField.Pcr;
-                _referenceTime = (ulong)(DateTime.UtcNow.Ticks*2.7);
+                _referenceTime = (long)(Stopwatch.GetTimestamp()*2.7);
             }
 
             if (_largePcrDriftCount > 5)
             {
                 //exceeded PCR drift ceiling - reset clocks
                 _referencePcr = tsPacket.AdaptationField.Pcr;
-                _referenceTime = (ulong)(DateTime.UtcNow.Ticks * 2.7);
+                _referenceTime = (long)(Stopwatch.GetTimestamp() * 2.7);
             }
 
             _lastPcr = tsPacket.AdaptationField.Pcr;
@@ -235,7 +239,7 @@ namespace Cinegy.TsAnalysis.Metrics
         {
             //reset reference PCR values used for drift check - set up reference values
             _referencePcr = tsPacket.AdaptationField.Pcr;
-            _referenceTime = (ulong)(DateTime.UtcNow.Ticks * 2.7);
+            _referenceTime = (long)(Stopwatch.GetTimestamp() * 2.7);
 
             var handler = DiscontinuityDetected;
             if (handler == null) return;
@@ -250,7 +254,7 @@ namespace Cinegy.TsAnalysis.Metrics
         {
             //reset reference PCR values used for drift check - set up reference values
             _referencePcr = tsPacket.AdaptationField.Pcr;
-            _referenceTime = (ulong)(DateTime.UtcNow.Ticks * 2.7);
+            _referenceTime = (long)(Stopwatch.GetTimestamp() * 2.7);
 
             var handler = TeiDetected;
             if (handler == null) return;

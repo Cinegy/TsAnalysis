@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <Version>1.0.0</Version>
     <Authors>Lewis Kirkaldie</Authors>
     <Company>Cinegy GmbH</Company>
@@ -14,10 +14,15 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
   </PropertyGroup>
-
-  <ItemGroup>
+  
+  <ItemGroup Condition="'$(Configuration)'=='Release'">
+    <PackageReference Include="Cinegy.TtxDecoder" Version="2.0.44" />
     <PackageReference Include="Cinegy.Telemetry" Version="2.0.24" />
-    <PackageReference Include="Cinegy.TtxDecoder" Version="2.0.43" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)'=='Debug'">
+    <ProjectReference Include="..\..\Telemetry\Cinegy.Telemetry\Cinegy.Telemetry.csproj" />
+    <ProjectReference Include="..\..\TtxDecoder\Cinegy.TtxDecoder\Cinegy.TtxDecoder.csproj" />
   </ItemGroup>
 
 </Project>

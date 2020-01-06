@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using Cinegy.Telemetry;
 using Cinegy.TsAnalysis.Logging;
@@ -100,8 +101,15 @@ namespace Cinegy.TsAnalysis
         }
 
 
-        public void AnalyzePackets(IEnumerable<TsPacket> tsPackets)
+        public void AnalyzePackets(IEnumerable<TsPacket> tsPackets, long recvTimeMs = -1)
         {
+            if (recvTimeMs == -1)
+            {
+                var ticksPerMs = Stopwatch.Frequency / 1000;
+                
+                recvTimeMs = Stopwatch.GetTimestamp() / ticksPerMs;
+            }
+
             lock (PidMetrics)
             {
                 foreach (var tsPacket in tsPackets)
@@ -161,9 +169,7 @@ namespace Cinegy.TsAnalysis
                         PidMetrics.Add(currentPidMetric);
                     }
 
-                    currentPidMetric.AddPacket(tsPacket);
-
-
+                    currentPidMetric.AddPacket(tsPacket, recvTimeMs);
 
                     if (TsDecoder == null) continue;
                     lock (TsDecoder)
@@ -321,7 +327,7 @@ namespace Cinegy.TsAnalysis
                     dataBuffer = tmpArry;
                 }
 
-                //TODO: Reimplement support for historical buffer dumping
+                //TODO: Re-implement support for historical buffer dumping
 
                 try
                 {
@@ -344,7 +350,7 @@ namespace Cinegy.TsAnalysis
                                 continue;
                             }
 
-                            AnalyzePackets(tsPackets);
+                            AnalyzePackets(tsPackets, (long)timestamp);
                         }
                         catch (Exception ex)
                         {
