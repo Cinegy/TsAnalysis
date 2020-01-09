@@ -22,10 +22,8 @@ namespace Cinegy.TsAnalysis.Metrics
         private float _periodMaxBufferUsage;
         private int _periodData;
         private int _periodMaxPacketQueue;
-        private readonly double _conversionFactor27Mhz = 27000000.0 / Stopwatch.Frequency; //calculate platform conversion factor for timestamps
-
-        //private long _timerFreq;
-
+        private readonly long _stopwatchFrequency = Stopwatch.Frequency;
+        
         protected override void ResetPeriodTimerCallback(object o)
         {
             lock (this)
@@ -208,6 +206,7 @@ namespace Cinegy.TsAnalysis.Metrics
         [JsonIgnore]
         public UdpClient UdpClient { get; set; }
 
+        [Obsolete]
         public static long AccurateCurrentTime()
         {
             var time = Stopwatch.GetTimestamp();
@@ -231,8 +230,8 @@ namespace Cinegy.TsAnalysis.Metrics
                 if (_periodMaxPacketQueue < currentQueueSize) _periodMaxPacketQueue = currentQueueSize;
 
                 _currentPacketTime = timestamp;
-                
-                var timeBetweenLastPacket = (_currentPacketTime - _lastPacketTime) / 27000000.0;
+
+                var timeBetweenLastPacket = (double)(_currentPacketTime - _lastPacketTime) / _stopwatchFrequency;
                
                 TimeBetweenLastPacket = timeBetweenLastPacket;
 
@@ -272,7 +271,7 @@ namespace Cinegy.TsAnalysis.Metrics
                 TotalData += data.Length;
                 _periodData += data.Length;
 
-                if (AccurateCurrentTime() - _currentSampleTime < TicksPerSecond)
+                if (Stopwatch.GetTimestamp() - _currentSampleTime < _stopwatchFrequency)
                 {
                     _dataThisSecond += data.Length;
                 }
@@ -288,7 +287,7 @@ namespace Cinegy.TsAnalysis.Metrics
                         if (CurrentBitrate < LowestBitrate) LowestBitrate = CurrentBitrate;
 
                         _dataThisSecond = 0;
-                        _currentSampleTime = AccurateCurrentTime();
+                        _currentSampleTime = Stopwatch.GetTimestamp();
                     }
                 }
 
@@ -318,8 +317,8 @@ namespace Cinegy.TsAnalysis.Metrics
         private void RegisterFirstPacket()
         {
             StartTime = DateTime.UtcNow;
-            _currentSampleTime = AccurateCurrentTime();
-            _lastPacketTime = AccurateCurrentTime();
+            _currentSampleTime = Stopwatch.GetTimestamp();
+            _lastPacketTime = _currentSampleTime;
         }
     
         public event  EventHandler BufferOverflow;

@@ -205,32 +205,32 @@ namespace Cinegy.TsAnalysis
                     tsMetricLogRecord.Rtp = RtpMetric;
                 }
 
-                var tsmetric = new TsMetric();
+                var tsMetric = new TsMetric();
 
                 foreach (var pidMetric in PidMetrics)
                 {
-                    tsmetric.PidCount++;
-                    tsmetric.PidPackets += pidMetric.PeriodPacketCount;
-                    tsmetric.PidCcErrors += pidMetric.PeriodCcErrorCount;
-                    tsmetric.TeiErrors += pidMetric.PeriodTeiCount;
+                    tsMetric.PidCount++;
+                    tsMetric.PidPackets += pidMetric.PeriodPacketCount;
+                    tsMetric.PidCcErrors += pidMetric.PeriodCcErrorCount;
+                    tsMetric.TeiErrors += pidMetric.PeriodTeiCount;
 
-                    if (tsmetric.LongestPcrDelta < pidMetric.PeriodLargestPcrDelta)
+                    if (tsMetric.LongestPcrDelta < pidMetric.PeriodLargestPcrDelta)
                     {
-                        tsmetric.LongestPcrDelta = pidMetric.PeriodLargestPcrDelta;
+                        tsMetric.LongestPcrDelta = pidMetric.PeriodLargestPcrDelta;
                     }
 
-                    if (tsmetric.LargestPcrDrift < pidMetric.PeriodLargestPcrDrift)
+                    if (tsMetric.LargestPcrDrift < pidMetric.PeriodLargestPcrDrift)
                     {
-                        tsmetric.LargestPcrDrift = pidMetric.PeriodLargestPcrDrift;
+                        tsMetric.LargestPcrDrift = pidMetric.PeriodLargestPcrDrift;
                     }
 
-                    if (tsmetric.LowestPcrDrift < pidMetric.PeriodLowestPcrDrift)
+                    if (tsMetric.LowestPcrDrift < pidMetric.PeriodLowestPcrDrift)
                     {
-                        tsmetric.LowestPcrDrift = pidMetric.PeriodLowestPcrDrift;
+                        tsMetric.LowestPcrDrift = pidMetric.PeriodLowestPcrDrift;
                     }
                 }
 
-                tsMetricLogRecord.Ts = tsmetric;
+                tsMetricLogRecord.Ts = tsMetric;
 
                 LogEventInfo lei = new TelemetryLogEventInfo
                 {

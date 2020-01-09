@@ -167,12 +167,9 @@ namespace Cinegy.TsAnalysis.Metrics
             {
                 //first PCR value - set up reference values               
                 
-                //wait 10 seconds before sampling datum PCR time - otherwise everything drifts immediately as analyser finishes launching tasks
+                //wait 10 seconds before sampling datum PCR time - otherwise everything drifts immediately as analyzer finishes launching tasks
                 if (DateTime.UtcNow.Subtract(_startTime) < TimeSpan.FromSeconds(10)) return;
                 ResetReferenceTime(tsPacket.AdaptationField.Pcr);
-                
-                //_referenceTime = (long)(Stopwatch.GetTimestamp()*2.7);
-                //_referenceTime = Stopwatch.GetTimestamp() / Stopwatch.Frequency * 27000000; //convert stamp to 27Mhz clock
             }
 
             if (_largePcrDriftCount > 5)
