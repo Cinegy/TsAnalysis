@@ -17,12 +17,13 @@ namespace Cinegy.TsAnalysis.Metrics
         private int _packetsThisSecond;
 
         private int _currentPeriodPackets;
-        private long _periodLongestTimeBetweenPackets;
-        private int _periodShortestTimeBetweenPackets;
+        private double _periodLongestTimeBetweenPackets;
+        private double _periodShortestTimeBetweenPackets;
         private float _periodMaxBufferUsage;
         private int _periodData;
         private int _periodMaxPacketQueue;
-        
+        private readonly double _conversionFactor27Mhz = 27000000.0 / Stopwatch.Frequency; //calculate platform conversion factor for timestamps
+
         //private long _timerFreq;
 
         protected override void ResetPeriodTimerCallback(object o)
@@ -153,27 +154,27 @@ namespace Cinegy.TsAnalysis.Metrics
         /// <summary>
         /// Instantaneous time between last two received packets
         /// </summary>
-        public long TimeBetweenLastPacket { get; private set; }
+        public double TimeBetweenLastPacket { get; private set; }
 
         /// <summary>
         /// All-time longest time between two received packets (unless explicitly reset)
         /// </summary>
-        public long LongestTimeBetweenPackets { get; private set; }
+        public double LongestTimeBetweenPackets { get; private set; }
     
         /// <summary>
         /// Longest time between two received packets within the last sampling period
         /// </summary>
-        public long PeriodLongestTimeBetweenPackets { get; private set; }
+        public double PeriodLongestTimeBetweenPackets { get; private set; }
 
         /// <summary>
         /// All-time shortest time between two received packets (unless explicitly reset)
         /// </summary>
-        public long ShortestTimeBetweenPackets { get; private set; }
+        public double ShortestTimeBetweenPackets { get; private set; }
 
         /// <summary>
         /// Shortest time between two received packets within the last sampling period
         /// </summary>
-        public long PeriodShortestTimeBetweenPackets { get; private set; }
+        public double PeriodShortestTimeBetweenPackets { get; private set; }
 
         ////TODO: This
         ///// <summary>
@@ -214,7 +215,7 @@ namespace Cinegy.TsAnalysis.Metrics
             return time;
         }
 
-        public void AddPacket(byte[] data, long recvTimeMs, int currentQueueSize)
+        public void AddPacket(byte[] data, long timestamp, int currentQueueSize)
         {
             lock (this)
             {
@@ -229,11 +230,11 @@ namespace Cinegy.TsAnalysis.Metrics
 
                 if (_periodMaxPacketQueue < currentQueueSize) _periodMaxPacketQueue = currentQueueSize;
 
-                _currentPacketTime = recvTimeMs;
+                _currentPacketTime = timestamp;
                 
-                var timeBetweenLastPacket = _currentPacketTime - _lastPacketTime;
+                var timeBetweenLastPacket = (_currentPacketTime - _lastPacketTime) / 27000000.0;
                
-                TimeBetweenLastPacket =timeBetweenLastPacket;
+                TimeBetweenLastPacket = timeBetweenLastPacket;
 
                 _lastPacketTime = _currentPacketTime;
 

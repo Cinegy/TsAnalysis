@@ -20,9 +20,9 @@ namespace Cinegy.TsAnalysis.Metrics
         public int LongestPcrDelta { get; set; }
 
          
-        public int LargestPcrDrift { get; set; }
+        public float LargestPcrDrift { get; set; }
 
          
-        public int LowestPcrDrift { get; set; }
+        public float LowestPcrDrift { get; set; }
     }
 }

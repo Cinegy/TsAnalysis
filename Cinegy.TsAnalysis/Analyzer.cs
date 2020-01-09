@@ -101,13 +101,11 @@ namespace Cinegy.TsAnalysis
         }
 
 
-        public void AnalyzePackets(IEnumerable<TsPacket> tsPackets, long recvTimeMs = -1)
+        public void AnalyzePackets(IEnumerable<TsPacket> tsPackets, long timestamp = -1)
         {
-            if (recvTimeMs == -1)
+            if (timestamp == -1)
             {
-                var ticksPerMs = Stopwatch.Frequency / 1000;
-                
-                recvTimeMs = Stopwatch.GetTimestamp() / ticksPerMs;
+                timestamp = Stopwatch.GetTimestamp();
             }
 
             lock (PidMetrics)
@@ -169,7 +167,7 @@ namespace Cinegy.TsAnalysis
                         PidMetrics.Add(currentPidMetric);
                     }
 
-                    currentPidMetric.AddPacket(tsPacket, recvTimeMs);
+                    currentPidMetric.AddPacket(tsPacket, timestamp);
 
                     if (TsDecoder == null) continue;
                     lock (TsDecoder)
@@ -328,7 +326,6 @@ namespace Cinegy.TsAnalysis
                 }
 
                 //TODO: Re-implement support for historical buffer dumping
-
                 try
                 {
                     lock (NetworkMetric)
