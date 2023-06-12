@@ -1,18 +1,31 @@
-﻿using System;
+﻿/*   Copyright 2017-2023 Cinegy GmbH
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+using System;
 using System.Diagnostics;
 using Cinegy.TsDecoder.TransportStream;
-
-//using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 
 namespace Cinegy.TsAnalysis.Metrics
 {
     public delegate void DiscontinuityDetectedEventHandler(object sender, TransportStreamEventArgs args);
     public delegate void TransportErrorIndicatorDetectedEventHandler(object sender, TransportStreamEventArgs args);
 
-    //    [DataContract]
-    public class PidMetric : Telemetry.Metrics.Metric
+    [DataContract]
+    public class PidMetric : Metric
     {
-
         private int _periodPacketCount;
         private int _periodCcErrorCount;
         private int _periodTeiCount;
@@ -27,7 +40,7 @@ namespace Cinegy.TsAnalysis.Metrics
         private ulong _referencePcr;
         private double _referenceTime;
         private readonly DateTime _startTime = DateTime.UtcNow;
-                
+
         public PidMetric(int samplingPeriod = 5000)
         {
             SamplingPeriod = samplingPeriod;
@@ -61,33 +74,33 @@ namespace Cinegy.TsAnalysis.Metrics
             }
         }
 
-         
+
         public int Pid { get; set; }
 
-         
+
         public long PacketCount { get; private set; }
-        
-         
+
+
         public int PeriodPacketCount { get; private set; }
 
         public long TeiCount { get; private set; }
-        
+
         public int PeriodTeiCount { get; private set; }
-        
+
         public long CcErrorCount { get; private set; }
-        
+
         public int PeriodCcErrorCount { get; private set; }
-        
+
         public bool HasPcr { get; } = false;
-        
+
         public int PeriodLargestPcrDelta { get; private set; }
-        
+
         public float PeriodLargestPcrDrift { get; private set; }
-        
+
         public float PeriodLowestPcrDrift { get; private set; }
 
         private int LastCc { get; set; }
-        
+
         public void AddPacket(TsPacket newPacket, long timestamp = -1)
         {
             try
@@ -122,22 +135,20 @@ namespace Cinegy.TsAnalysis.Metrics
             if (!tsPacket.AdaptationFieldExists) return;
             if (!tsPacket.AdaptationField.PcrFlag) return;
             if (tsPacket.AdaptationField.FieldSize < 1) return;
-            
+
             if (tsPacket.AdaptationField.DiscontinuityIndicator)
             {
                 Debug.WriteLine("Adaptation field discont indicator");
                 return;
             }
-            
+
             if (_lastPcr != 0)
             {
                 var latestDelta = tsPacket.AdaptationField.Pcr - _lastPcr;
                 if (latestDelta > _periodLargestPcrDelta) _periodLargestPcrDelta = latestDelta;
 
                 var elapsedPcr = (long)(tsPacket.AdaptationField.Pcr - _referencePcr);
-                
-                //var elapsedClock = (long)((DateTime.UtcNow.Ticks * 2.7) - _referenceTime);
-                //var elapsedClock = (timestamp * 27000) - _referenceTime;
+
                 var elapsedClock = timestamp * _conversionFactor27Mhz - _referenceTime;
 
                 var drift = (float)(elapsedClock - elapsedPcr) / 27000;
@@ -166,7 +177,7 @@ namespace Cinegy.TsAnalysis.Metrics
             else
             {
                 //first PCR value - set up reference values               
-                
+
                 //wait 10 seconds before sampling datum PCR time - otherwise everything drifts immediately as analyzer finishes launching tasks
                 if (DateTime.UtcNow.Subtract(_startTime) < TimeSpan.FromSeconds(10)) return;
                 ResetReferenceTime(tsPacket.AdaptationField.Pcr);
@@ -203,7 +214,7 @@ namespace Cinegy.TsAnalysis.Metrics
                         CcErrorCount++;
                         _periodCcErrorCount++;
                     }
-                    
+
                     return;
                 }
 
@@ -232,7 +243,7 @@ namespace Cinegy.TsAnalysis.Metrics
 
         // Continuity Counter Error has been detected.
         public event DiscontinuityDetectedEventHandler DiscontinuityDetected;
-        
+
         private void OnDiscontinuityDetected(TsPacket tsPacket)
         {
             //reset reference PCR values used for drift check - set up reference values
@@ -247,15 +258,15 @@ namespace Cinegy.TsAnalysis.Metrics
         private void ResetReferenceTime(ulong newPcr)
         {
             _referencePcr = newPcr;
-            _lastPcr = 0; 
-            
+            _lastPcr = 0;
+
             if (newPcr == 0)
             {
                 _referenceTime = 0;
                 return;
             }
 
-            _referenceTime = 
+            _referenceTime =
                 Stopwatch.GetTimestamp() * _conversionFactor27Mhz; //convert stamp to 27Mhz clock 
         }
 

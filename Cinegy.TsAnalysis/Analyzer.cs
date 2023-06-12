@@ -1,4 +1,4 @@
-﻿/*   Copyright 2017-2020 Cinegy GmbH
+﻿/*   Copyright 2017-2023 Cinegy GmbH
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,38 +16,45 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Threading;
-using Cinegy.Telemetry;
 using Cinegy.TsAnalysis.Logging;
 using Cinegy.TsAnalysis.Metrics;
-using Cinegy.TtxDecoder.Teletext;
-using NLog;
 using Cinegy.TsDecoder.Buffers;
 using Cinegy.TsDecoder.TransportStream;
+using Microsoft.Extensions.Logging;
 
 namespace Cinegy.TsAnalysis
 {
-    public class Analyzer
+    public class Analyzer : IDisposable
     {
+        private readonly Meter tsAnalysisMeter = new Meter("Cinegy.TsAnalysis");
+        private readonly Counter<long> tsPktCounter;
+        private readonly Counter<long> corruptedUdpPkts;
+        private readonly ObservableGauge<long> lastPcrGauge;
+        private readonly Counter<long> pidCounters;
+        private readonly Counter<long> pidCcCounters;
+
+        private readonly Dictionary<int, KeyValuePair<string, object>> _pidLabelCacheDictionary = new();
+
         public delegate void TsMetricLogRecordReadyEventHandler(object sender, TsMetricLogRecordReadyEventHandlerArgs args);
 
         // ReSharper disable once NotAccessedField.Local
         private Timer _periodicDataTimer;
+        private Thread _processQueueWorkerThread;
+        private CancellationTokenSource _cancellationTokenSource;
         private bool _pendingExit;
-        private Logger _logger;
-
-        public TeletextDecoder TeletextDecoder { get; set; }
+        private readonly ILogger _logger;
+        private bool _disposedValue;
 
         public DateTime StartTime { get; private set; }
 
-        public RingBuffer RingBuffer { get; } = new RingBuffer(5000,1500,true);
+        public RingBuffer RingBuffer { get; } = new(5000,1500,true);
         
-        public bool HasRtpHeaders { get; set; } = true;
+        public bool HasRtpHeaders { get; set; } = false;
 
         public bool InspectTsPackets { get; set; } = true;
-
-        public bool InspectTeletext { get; set; }
-
+        
         public ushort SelectedProgramNumber { get; set; }
 
         public bool VerboseLogging { get; set; }
@@ -63,55 +70,67 @@ namespace Cinegy.TsAnalysis
 
         public List<PidMetric> PidMetrics { get; private set; } = new List<PidMetric>();
 
-        public TeletextMetric TeletextMetric { get; private set; }
+        //public Logger Logger
+        //{
+        //    get => _logger ?? (_logger = LogManager.CreateNullLogger());
+        //    set => _logger = value;
+        //}
 
-        public Logger Logger {
-            get => _logger ?? (_logger = LogManager.CreateNullLogger());
-            set => _logger = value;
-        }
+        public ulong LastPcr { get; set; }
 
-        public ulong LastPcr { get ; set ; }
-
-        public ulong LastVidPts { get; set; }
-        public ulong LastSubPts { get; set; }
-
-        public TsDecoder.TransportStream.TsDecoder TsDecoder { get;set; } = new TsDecoder.TransportStream.TsDecoder();
+        public ulong LastOpcr { get; set; }
+        
+        public TsDecoder.TransportStream.TsDecoder TsDecoder { get;set; } = new();
 
         public int SelectedPcrPid { get; set; }
 
-        public Analyzer()
+        public Analyzer(ILogger logger = null)
         {
-        }
+            _logger = logger;
 
-        public Analyzer(Logger logger)
-        {
-            Logger = logger;
+            tsPktCounter = tsAnalysisMeter.CreateCounter<long>("tsPackets");
+            lastPcrGauge = tsAnalysisMeter.CreateObservableGauge<long>("lastPcr", () => (long)(LastPcr / 2.7));
+            pidCounters = tsAnalysisMeter.CreateCounter<long>("pidCount");
+            pidCcCounters = tsAnalysisMeter.CreateCounter<long>("pidCcCount");
+            corruptedUdpPkts = tsAnalysisMeter.CreateCounter<long>("corruptedUdpPackets");
         }
 
         public void Setup(string multicastAddress = "", int multicastPort = 0)
         {
+            _cancellationTokenSource = new CancellationTokenSource();
+
             _periodicDataTimer = new Timer(UpdateSeriesDataTimerCallback, null, 0, SamplingPeriod);
 
             SetupMetricsAndDecoders(multicastAddress, multicastPort);
 
-            var queueThread = new Thread(ProcessQueueWorkerThread);
+            _processQueueWorkerThread = new Thread(ProcessQueueWorkerThread);
 
-            queueThread.Start();
-            
+            _processQueueWorkerThread.Start();            
         }
-
-
-        public void AnalyzePackets(IEnumerable<TsPacket> tsPackets, long timestamp = -1)
+        
+        public void AnalyzePackets(TsPacket[] tsPackets, long timestamp = -1, int packetCount = 0)
         {
             if (timestamp == -1)
             {
                 timestamp = Stopwatch.GetTimestamp();
             }
 
+            if (packetCount == 0) packetCount = tsPackets.Length;
+
+            tsPktCounter.Add(packetCount);
+            
             lock (PidMetrics)
             {
-                foreach (var tsPacket in tsPackets)
+                for (var i = 0; i < packetCount; i++)
                 {
+                    var tsPacket = tsPackets[i];
+                    if (!_pidLabelCacheDictionary.ContainsKey(tsPacket.Pid))
+                    {
+                        _pidLabelCacheDictionary.Add(tsPacket.Pid,new KeyValuePair<string, object>("pid", tsPacket.Pid));
+                    }
+
+                    pidCounters?.Add(1, _pidLabelCacheDictionary[tsPacket.Pid]);
+
                     if (tsPacket.AdaptationFieldExists)
                     {
                         if (tsPacket.AdaptationField.PcrFlag)
@@ -126,37 +145,27 @@ namespace Cinegy.TsAnalysis
                                 LastPcr = tsPacket.AdaptationField.Pcr;
                             }
                         }
+
+                        if (tsPacket.AdaptationField.OpcrFlag)
+                        {
+                            if (SelectedPcrPid != 0)
+                            {
+                                if (tsPacket.Pid == SelectedPcrPid)
+                                    LastOpcr = tsPacket.AdaptationField.Opcr;
+                            }
+                            else
+                            {
+                                LastOpcr = tsPacket.AdaptationField.Opcr;
+                            }
+                        }
                     }
-
-                    if (tsPacket.PesHeader.Pts > 0)
-                    {
-                        if (tsPacket.Pid == 4096)
-                        {
-                            LastVidPts = (ulong)tsPacket.PesHeader.Pts;
-                        }
-
-                        if (tsPacket.Pid == 2049)
-                        {
-                            LastSubPts = (ulong)tsPacket.PesHeader.Pts;
-                        }
-                        /*
-                        if (SelectedPcrPid != 0)
-                        {
-                            if (tsPacket.Pid == SelectedPcrPid)
-                                LastPts = (ulong)tsPacket.PesHeader.Pts;
-                        }
-                        else
-                        {
-                            LastPts = (ulong)tsPacket.PesHeader.Pts;
-                        }*/
-                    }
-
+                    
                     PidMetric currentPidMetric = null;
                     foreach (var pidMetric in PidMetrics)
                     {
                         if (pidMetric.Pid != tsPacket.Pid) continue;
                         currentPidMetric = pidMetric;
-                        break;
+                        break; 
                     }
 
                     if (currentPidMetric == null)
@@ -173,21 +182,9 @@ namespace Cinegy.TsAnalysis
                     lock (TsDecoder)
                     {
                         TsDecoder.AddPacket(tsPacket);
-
-                        if (TeletextDecoder == null) continue;
-                        lock (TeletextDecoder)
-                        {
-                            TeletextDecoder.AddPacket(tsPacket, TsDecoder);
-                        }
                     }
                 }
             }
-        }
-
-        public void Cancel()
-        {
-            _pendingExit = true;
-            _periodicDataTimer.Dispose();
         }
 
         private void UpdateSeriesDataTimerCallback(object o)
@@ -199,7 +196,7 @@ namespace Cinegy.TsAnalysis
                     Net = NetworkMetric
                 };
 
-                
+
                 if (HasRtpHeaders)
                 {
                     tsMetricLogRecord.Rtp = RtpMetric;
@@ -232,30 +229,34 @@ namespace Cinegy.TsAnalysis
 
                 tsMetricLogRecord.Ts = tsMetric;
 
-                LogEventInfo lei = new TelemetryLogEventInfo
-                {
-                    Key = "TSD",
-                    TelemetryObject = tsMetricLogRecord,
-                    Level = LogLevel.Info
-                };
+                //LogEventInfo lei = new TelemetryLogEventInfo
+                //{
+                //    Key = "TSD",
+                //    TelemetryObject = tsMetricLogRecord,
+                //    Level = LogLevel.Info
+                //};
 
-                Logger.Log(lei);
+                //Logger.Log(lei);
 
 
                 var handler = TsMetricLogRecordReady;
                 if (_pendingExit) return;
-                handler?.BeginInvoke(this, new TsMetricLogRecordReadyEventHandlerArgs {  LogRecord = tsMetricLogRecord },null,null);
+                handler?.BeginInvoke(this, new TsMetricLogRecordReadyEventHandlerArgs { LogRecord = tsMetricLogRecord }, null, null);
             }
             catch (Exception ex)
             {
-                Logger.Error($"Problem generating time-slice log record: {ex.Message}");
+                _logger?.LogError($"Problem generating time-slice log record: {ex.Message}");
                 throw;
             }
-
         }
 
         private void SetupMetricsAndDecoders(string multicastAddress, int multicastPort)
         {
+            if (!string.IsNullOrWhiteSpace(multicastAddress))
+            {
+                _logger?.LogInformation($@"Setting up TS Analyzer for UDP network capture on {multicastAddress}:{multicastPort}");
+            }
+
             lock (PidMetrics)
             {
                 StartTime = DateTime.UtcNow;
@@ -266,38 +267,22 @@ namespace Cinegy.TsAnalysis
                     MulticastGroup = multicastPort,
                     SamplingPeriod = SamplingPeriod
                 };
-                
+
                 NetworkMetric.BufferOverflow += NetworkMetric_BufferOverflow;
-                
+
                 RtpMetric = new RtpMetric(SamplingPeriod);
 
                 RtpMetric.SequenceDiscontinuityDetected += RtpMetric_SequenceDiscontinuityDetected;
 
                 PidMetrics = new List<PidMetric>();
-                
+
                 if (InspectTsPackets)
                 {
                     TsDecoder = new TsDecoder.TransportStream.TsDecoder();
                     TsDecoder.TableChangeDetected += _tsDecoder_TableChangeDetected;
                 }
 
-                if (InspectTeletext)
-                {
-                    TeletextDecoder = SelectedProgramNumber > 1
-                        ? new TeletextDecoder(SelectedProgramNumber)
-                        : new TeletextDecoder();
-                    
-                    TeletextMetric = new TeletextMetric(TeletextDecoder.Service);
-                    TeletextDecoder.Service.TeletextPacketsReady += Service_TeletextPacketsReady;
-                }
-
-
             }
-        }
-
-        private void Service_TeletextPacketsReady(object sender, TeletextPacketsReadyEventArgs e)
-        {
-            TeletextMetric?.AddPackets(e.Packets);
         }
 
         private void ProcessQueueWorkerThread()
@@ -307,16 +292,14 @@ namespace Cinegy.TsAnalysis
 
             while (_pendingExit != true)
             {
-                var capacity = RingBuffer.Remove(ref dataBuffer, out var dataSize, out var timestamp);
+                var capacity = RingBuffer.Remove(dataBuffer, out var dataSize, out var timestamp, _cancellationTokenSource.Token);
 
                 if (capacity > 0)
                 {
                     dataBuffer = new byte[capacity];
                     continue;
                 }
-
-                if (dataBuffer == null) continue;
-
+                
                 if (dataBuffer.Length != dataSize)
                 {
                     //need to trim down buffer
@@ -330,36 +313,36 @@ namespace Cinegy.TsAnalysis
                 {
                     lock (NetworkMetric)
                     {
-                        NetworkMetric.AddPacket(dataBuffer, (long)timestamp, RingBuffer.BufferFullness);
+                        NetworkMetric.AddPacket(dataSize, (long)timestamp, RingBuffer.BufferFullness);
 
                         if (HasRtpHeaders)
                         {
                             RtpMetric.AddPacket(dataBuffer);
                         }
-                        
+
                         try
                         {
-                            var tsPackets = factory.GetTsPacketsFromData(dataBuffer);
+                            var tsPackets = factory.GetRentedTsPacketsFromData(dataBuffer,out var tsPktCount, dataSize);
 
                             if (tsPackets == null)
                             {
-                                Logger.Log(new TelemetryLogEventInfo() { Message = "Packet received with no detected TS packets", Level = LogLevel.Info, Key = "Packet" });
+                                corruptedUdpPkts.Add(1);
                                 continue;
                             }
-
-                            AnalyzePackets(tsPackets, (long)timestamp);
+                           
+                            AnalyzePackets(tsPackets,(long)timestamp, tsPktCount);
+                           
+                            factory.ReturnTsPackets(tsPackets, tsPktCount);
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log(new TelemetryLogEventInfo() { Message = $"Exception processing TS packet: {ex.Message}", Key = "Packet", Level = LogLevel.Warn });
+                            _logger?.LogError($"Exception processing TS packet: {ex.Message}");
                         }
-
-
                     }
                 }
                 catch (Exception ex)
                 {
-                    LogMessage($@"Unhandled exception within network receiver: {ex.Message}");
+                    _logger?.LogError($@"Unhandled exception within network receiver: {ex.Message}");
                 }
             }
 
@@ -368,51 +351,54 @@ namespace Cinegy.TsAnalysis
         
         private void LogMessage(string message)
         {
-            var lei = new TelemetryLogEventInfo
-            {
-                Level = LogLevel.Info,
-                Key = "GenericEvent",
-                Message = message
-            };
+            //var lei = new TelemetryLogEventInfo
+            //{
+            //    Level = LogLevel.Info,
+            //    Key = "GenericEvent",
+            //    Message = message
+            //};
 
-            Logger.Log(lei);
+            //Logger.Log(lei);
+            //_logger.LogInformation(message);
         }
 
         private void RtpMetric_SequenceDiscontinuityDetected(object sender, EventArgs e)
         {
             if (VerboseLogging)
             {
-                Logger.Log(new TelemetryLogEventInfo
-                {
-                    Message = "Discontinuity in RTP sequence",
-                    Level = LogLevel.Warn,
-                    Key = "Discontinuity"
-                });
+                //Logger.Log(new TelemetryLogEventInfo
+                //{
+                //    Message = "Discontinuity in RTP sequence",
+                //    Level = LogLevel.Warn,
+                //    Key = "Discontinuity"
+                //});
             }
         }
 
         private void NetworkMetric_BufferOverflow(object sender, EventArgs e)
         {
-            Logger.Log(new TelemetryLogEventInfo
-            {
-                Message = "Network buffer > 99% - probably loss of data from overflow",
-                Level = LogLevel.Error,
-                Key = "Overflow"
-            });
+            //Logger.Log(new TelemetryLogEventInfo
+            //{
+            //    Message = "Network buffer > 99% - probably loss of data from overflow",
+            //    Level = LogLevel.Error,
+            //    Key = "Overflow"
+            //});
         }
 
         private void CurrentPidMetric_DiscontinuityDetected(object sender, TransportStreamEventArgs e)
         {
             OnDiscontinuityDetected(e.TsPid);
+            
+            pidCcCounters?.Add(1, new KeyValuePair<string, object>("pid", e.TsPid));
 
             if (VerboseLogging)
             {
-                Logger.Log(new TelemetryLogEventInfo()
-                {
-                    Message = "Discontinuity on TS PID {e.TsPid}",
-                    Level = LogLevel.Info,
-                    Key = "Discontinuity"
-                });
+                //Logger.Log(new TelemetryLogEventInfo()
+                //{
+                //    Message = "Discontinuity on TS PID {e.TsPid}",
+                //    Level = LogLevel.Info,
+                //    Key = "Discontinuity"
+                //});
             }
         }
         
@@ -422,12 +408,12 @@ namespace Cinegy.TsAnalysis
 
             if (VerboseLogging)
             {
-                Logger.Log(new TelemetryLogEventInfo()
-                {
-                    Message = "Transport Error Indicator on TS PID {e.TsPid}",
-                    Level = LogLevel.Info,
-                    Key = "Transport Error Indicator"
-                });
+                //Logger.Log(new TelemetryLogEventInfo()
+                //{
+                //    Message = "Transport Error Indicator on TS PID {e.TsPid}",
+                //    Level = LogLevel.Info,
+                //    Key = "Transport Error Indicator"
+                //});
             }
         }
 
@@ -436,12 +422,12 @@ namespace Cinegy.TsAnalysis
             //only log PAT / PMT / SDT changes, otherwise we bomb the telemetry system with EPG and NIT updates
             if ((e.TableType == TableType.Pat) || (e.TableType == TableType.Pmt) || (e.TableType == TableType.Sdt))
             {
-                Logger.Log(new TelemetryLogEventInfo
-                {
-                    Message = "Table Change: " + e.Message,
-                    Level = LogLevel.Info,
-                    Key = "TableChange"
-                });
+                //Logger.Log(new TelemetryLogEventInfo
+                //{
+                //    Message = "Table Change: " + e.Message,
+                //    Level = LogLevel.Info,
+                //    Key = "TableChange"
+                //});
             }
         }
 
@@ -468,8 +454,27 @@ namespace Cinegy.TsAnalysis
             var args = new TransportStreamEventArgs { TsPid = tsPid };
             handler(this, args);
         }
-        
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    _pendingExit = true;
+                    _cancellationTokenSource.Cancel();
+                    _periodicDataTimer.Dispose();
+                }
+
+                _disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
-
 }

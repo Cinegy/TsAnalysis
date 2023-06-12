@@ -1,11 +1,26 @@
-﻿using Newtonsoft.Json;
+﻿/*   Copyright 2017-2023 Cinegy GmbH
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 using System;
 using System.Diagnostics;
 using System.Net.Sockets;
+using System.Text.Json.Serialization;
 
 namespace Cinegy.TsAnalysis.Metrics
 {
-    public class NetworkMetric : Telemetry.Metrics.Metric
+    public class NetworkMetric : Metric
     {
         private bool _averagesReady;
         private bool _bufferOverflow;
@@ -23,7 +38,7 @@ namespace Cinegy.TsAnalysis.Metrics
         private int _periodData;
         private int _periodMaxPacketQueue;
         private readonly long _stopwatchFrequency = Stopwatch.Frequency;
-        
+
         protected override void ResetPeriodTimerCallback(object o)
         {
             lock (this)
@@ -42,7 +57,7 @@ namespace Cinegy.TsAnalysis.Metrics
 
                 PeriodData = _periodData;
                 _periodData = 0;
-                
+
                 PeriodMaxPacketQueue = _periodMaxPacketQueue;
                 _periodMaxPacketQueue = 0;
 
@@ -50,7 +65,7 @@ namespace Cinegy.TsAnalysis.Metrics
 
             }
         }
-        
+
         /// <summary>
         /// The multicast address that is associated with this metric
         /// </summary>
@@ -59,7 +74,7 @@ namespace Cinegy.TsAnalysis.Metrics
         /// <summary>
         /// The multicast group that is associated with this metric
         /// </summary>
-        public int  MulticastGroup { get; set; }
+        public int MulticastGroup { get; set; }
 
         /// <summary>
         /// All time total of packets received (unless explicitly reset)
@@ -102,7 +117,7 @@ namespace Cinegy.TsAnalysis.Metrics
         /// Lowest per-second bitrate measured since start (unless explicitly reset)
         /// </summary>
         public long LowestBitrate { get; private set; } = 999999999;
-        
+
         ////TODO: This
         ///// <summary>
         ///// Lowest per-second bitrate measured within the last complete sampling period
@@ -113,12 +128,12 @@ namespace Cinegy.TsAnalysis.Metrics
         /// <summary>
         /// All-time average bitrate measured since start (unless explicitly reset)
         /// </summary>
-        public long AverageBitrate => (long) (TotalData/DateTime.UtcNow.Subtract(StartTime).TotalSeconds) * 8;
-        
+        public long AverageBitrate => (long)(TotalData / DateTime.UtcNow.Subtract(StartTime).TotalSeconds) * 8;
+
         /// <summary>
         /// Average bitrate measured within the last complete sampling period
         /// </summary>
-        public long PeriodAverageBitrate => (PeriodData / (SamplingPeriod/1000)) * 8;
+        public long PeriodAverageBitrate => (PeriodData / (SamplingPeriod / 1000)) * 8;
 
         /// <summary>
         /// Packets received within the last complete second
@@ -135,7 +150,7 @@ namespace Cinegy.TsAnalysis.Metrics
             {
                 if (UdpClient == null) return -1;
                 float avail = UdpClient.Available;
-                return avail/UdpClient.Client.ReceiveBufferSize*100;
+                return avail / UdpClient.Client.ReceiveBufferSize * 100;
             }
         }
 
@@ -148,7 +163,7 @@ namespace Cinegy.TsAnalysis.Metrics
         /// The highest network buffer usage within the last sampling period
         /// </summary>
         public float PeriodMaxNetworkBufferUsage { get; private set; }
-        
+
         /// <summary>
         /// Instantaneous time between last two received packets
         /// </summary>
@@ -158,7 +173,7 @@ namespace Cinegy.TsAnalysis.Metrics
         /// All-time longest time between two received packets (unless explicitly reset)
         /// </summary>
         public double LongestTimeBetweenPackets { get; private set; }
-    
+
         /// <summary>
         /// Longest time between two received packets within the last sampling period
         /// </summary>
@@ -187,7 +202,7 @@ namespace Cinegy.TsAnalysis.Metrics
         ///// </summary>
         // 
         //public float PeriodAverageTimeBetweenPackets { get; private set; }
-        
+
         /// <summary>
         /// Current count of packets waiting in queue for processing
         /// </summary>
@@ -197,24 +212,16 @@ namespace Cinegy.TsAnalysis.Metrics
         /// All-time maximum value for count of packets waiting in queue (unless explicitly reset)
         /// </summary>
         public float MaxPacketQueue { get; private set; }
-    
+
         /// <summary>
         /// Maximum value for count of packets waiting in queue within the last sampling period
         /// </summary>
         public float PeriodMaxPacketQueue { get; private set; }
-        
+
         [JsonIgnore]
         public UdpClient UdpClient { get; set; }
 
-        [Obsolete]
-        public static long AccurateCurrentTime()
-        {
-            var time = Stopwatch.GetTimestamp();
-
-            return time;
-        }
-
-        public void AddPacket(byte[] data, long timestamp, int currentQueueSize)
+        public void AddPacket(int dataSize, long timestamp, int currentQueueSize)
         {
             lock (this)
             {
@@ -232,7 +239,7 @@ namespace Cinegy.TsAnalysis.Metrics
                 _currentPacketTime = timestamp;
 
                 var timeBetweenLastPacket = (double)(_currentPacketTime - _lastPacketTime) / _stopwatchFrequency;
-               
+
                 TimeBetweenLastPacket = timeBetweenLastPacket;
 
                 _lastPacketTime = _currentPacketTime;
@@ -268,12 +275,12 @@ namespace Cinegy.TsAnalysis.Metrics
 
                 TotalPackets++;
                 _currentPeriodPackets++;
-                TotalData += data.Length;
-                _periodData += data.Length;
+                TotalData += dataSize;
+                _periodData += dataSize;
 
                 if (Stopwatch.GetTimestamp() - _currentSampleTime < _stopwatchFrequency)
                 {
-                    _dataThisSecond += data.Length;
+                    _dataThisSecond += dataSize;
                 }
                 else
                 {
@@ -320,8 +327,8 @@ namespace Cinegy.TsAnalysis.Metrics
             _currentSampleTime = Stopwatch.GetTimestamp();
             _lastPacketTime = _currentSampleTime;
         }
-    
-        public event  EventHandler BufferOverflow;
+
+        public event EventHandler BufferOverflow;
 
         protected virtual void OnBufferOverflow()
         {

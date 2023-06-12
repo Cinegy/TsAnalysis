@@ -5,4 +5,6 @@ obj
 TestResults
 *.user
 /Cinegy.TsAnalysis/project.lock.json
-.DS_Store
+/packages
+/Cinegy.TsAnalysis/Properties/PublishProfiles/FolderProfile.pubxml
+.gitlab-ci.yml
